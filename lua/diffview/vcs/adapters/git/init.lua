@@ -1709,6 +1709,7 @@ GitAdapter.tracked_files = async.wrap(function(self, left, right, args, kind, op
       "diff",
       "--ignore-submodules",
       "--name-status",
+      "--find-renames=5%",
       args
     ),
     cwd = self.ctx.toplevel,
@@ -1723,6 +1724,7 @@ GitAdapter.tracked_files = async.wrap(function(self, left, right, args, kind, op
       "diff",
       "--ignore-submodules",
       "--numstat",
+      "--find-renames=5%",
       args
     ),
     cwd = self.ctx.toplevel,
