@@ -1523,6 +1523,64 @@ end
 GitAdapter.file_restore = async.wrap(function(self, path, kind, commit, callback)
   local out, code
   local abs_path = pl:join(self.ctx.toplevel, path)
+
+  if pl:is_dir(abs_path) then
+    -- Directory restore: no undo support
+    -- Check if directory exists in history (ls-tree returns 0 even for non-existent paths)
+    out, code = self:exec_sync(
+      { "ls-tree", "-d", commit or (kind == "staged" and "HEAD") or "", "--", path },
+      self.ctx.toplevel
+    )
+    local exists_git = code == 0 and #out > 0 and out[1] ~= ""
+
+    if not exists_git then
+      -- Directory is newly added and has no history: remove it
+      if kind == "working" or kind == "conflicting" then
+        await(async.scheduler())
+        local ok = vim.fn.delete(abs_path, "rf")
+        if ok ~= 0 then
+          utils.err(fmt("Failed to delete directory '%s'! Aborting restoration.", abs_path), true)
+          callback(false)
+          return
+        end
+      else
+        -- Staged: remove from index
+        _, code = self:exec_sync(
+          { "rm", "-rf", "--", path },
+          self.ctx.toplevel
+        )
+        if code ~= 0 then
+          callback(false)
+          return
+        end
+      end
+    else
+      -- Directory exists in history: checkout
+      _, code = self:exec_sync(
+        utils.vec_join("checkout", commit or (kind == "staged" and "HEAD" or nil), "--", path),
+        self.ctx.toplevel
+      )
+
+      if code ~= 0 then
+        callback(false)
+        return
+      end
+
+      await(async.scheduler())
+      for _, bufnr in ipairs(api.nvim_list_bufs()) do
+        if api.nvim_buf_is_loaded(bufnr) then
+          local buf_name = api.nvim_buf_get_name(bufnr)
+          if vim.startswith(buf_name, abs_path) then
+            vim.cmd(fmt("checktime %d", bufnr))
+          end
+        end
+      end
+    end
+
+    callback(true)
+    return
+  end
+
   local rel_path = pl:vim_fnamemodify(abs_path, ":~")
 
   -- Check if file exists in history

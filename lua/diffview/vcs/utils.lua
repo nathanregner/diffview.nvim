@@ -156,12 +156,12 @@ M.restore_file = async.void(function(adapter, path, kind, commit)
   local ok, undo = await(adapter:file_restore(path, kind, commit))
 
   if not ok then
-    utils.err("Failed to revert file! See ':DiffviewLog' for details.", true)
+    utils.err("Failed to restore! See ':DiffviewLog' for details.", true)
     return
   end
 
   local rev_name = (commit and commit:sub(1, 11)) or (kind == "staged" and "HEAD" or "index")
-  local msg = fmt("File restored from %s. %s", rev_name, undo and ("Undo with " .. undo) or "")
+  local msg = fmt("Restored from %s.%s", rev_name, undo and (" Undo with " .. undo) or "")
 
   logger:info(msg)
   utils.info(msg, true)

@@ -231,17 +231,19 @@ return function(view)
         commit = view.left.commit
       end
 
-      local file = view:infer_cur_file()
-      if not file then return end
+      local item = view:infer_cur_file(true)
+      if not item then return end
 
-      local bufid = utils.find_file_buffer(file.path)
+      if type(item.collapsed) ~= "boolean" then
+        local bufid = utils.find_file_buffer(item.path)
 
-      if bufid and vim.bo[bufid].modified then
-        utils.err("The file is open with unsaved changes! Aborting file restoration.")
-        return
+        if bufid and vim.bo[bufid].modified then
+          utils.err("The file is open with unsaved changes! Aborting file restoration.")
+          return
+        end
       end
 
-      await(vcs_utils.restore_file(view.adapter, file.path, file.kind, commit))
+      await(vcs_utils.restore_file(view.adapter, item.path, item.kind, commit))
       view:update_files()
     end),
     listing_style = function()
