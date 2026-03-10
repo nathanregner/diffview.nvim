@@ -144,6 +144,12 @@ M.defaults = {
       { "n", "<leader>cB",  actions.conflict_choose_all("base"),    { desc = "Choose the BASE version of a conflict for the whole file" } },
       { "n", "<leader>cE",  actions.conflict_choose_all("all"),     { desc = "Choose all the versions of a conflict for the whole file" } },
       { "n", "dX",          actions.conflict_choose_all("none"),    { desc = "Delete the conflict region for the whole file" } },
+      { "n", "<C-d>",       actions.smart_scroll_down(0.5),         { desc = "Scroll down or next file at bottom" } },
+      { "n", "<C-u>",       actions.smart_scroll_up(0.5),           { desc = "Scroll up or prev file at top" } },
+      { "n", "G",           actions.smart_goto_end(),               { desc = "Go to end or next file" } },
+      { "n", "gg",          actions.smart_goto_start(),             { desc = "Go to start or prev file" } },
+      { "n", "]c",          actions.smart_next_change(),            { desc = "Next change or next file" } },
+      { "n", "[c",          actions.smart_prev_change(),            { desc = "Prev change or prev file" } },
       unpack(actions.compat.fold_cmds),
     },
     diff1 = {

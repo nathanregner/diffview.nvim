@@ -53,11 +53,13 @@ return function(view)
         new_view:open()
       end
     end,
-    select_next_entry = function()
+    select_next_entry = function(_, on_entry_change)
       view:next_item()
+      if on_entry_change then on_entry_change() end
     end,
-    select_prev_entry = function()
+    select_prev_entry = function(_, on_entry_change)
       view:prev_item()
+      if on_entry_change then on_entry_change() end
     end,
     select_first_entry = function()
       local entry = view.panel.entries[1]

@@ -308,6 +308,147 @@ function M.scroll_view(distance)
   end
 end
 
+---Get the target window (with max content height) from current StandardView
+---@return integer? winid
+local function get_target_win()
+  local view = lib.get_current_view()
+  if not (view and view:instanceof(StandardView.__get())) then return end
+
+  ---@cast view StandardView
+  local max = -1
+  local target
+
+  for _, win in ipairs(view.cur_layout.windows) do
+    local height = utils.win_content_height(win.id)
+    if height > max then
+      max = height
+      target = win.id
+    end
+  end
+
+  return target
+end
+
+---@param distance number Fraction of window height to scroll (e.g., 0.5 for half)
+---@return function
+function M.smart_scroll_down(distance)
+  local scroll_cmd = ([[exe "norm! " . float2nr(winheight(0) * %f) . "\<c-e>"]])
+      :format(math.abs(distance))
+
+  return function()
+    local target = get_target_win()
+    if not target then return end
+
+    if api.nvim_win_get_cursor(target)[1] >= vim.fn.line("w$", target) then
+      require("diffview").emit("select_next_entry", function()
+        vim.schedule(function()
+          api.nvim_win_call(target, function() vim.cmd([[exe "norm! gg"]]) end)
+        end)
+      end)
+    else
+      api.nvim_win_call(target, function() vim.cmd(scroll_cmd) end)
+    end
+  end
+end
+
+---@param distance number Fraction of window height to scroll (e.g., 0.5 for half)
+---@return function
+function M.smart_scroll_up(distance)
+  local scroll_cmd = ([[exe "norm! " . float2nr(winheight(0) * %f) . "\<c-y>"]])
+      :format(math.abs(distance))
+
+  return function()
+    local target = get_target_win()
+    if not target then return end
+
+    if api.nvim_win_get_cursor(target)[1] <= vim.fn.line("w0", target) then
+      require("diffview").emit("select_prev_entry", function()
+        vim.schedule(function()
+          api.nvim_win_call(target, function() vim.cmd([[exe "norm! G"]]) end)
+        end)
+      end)
+    else
+      api.nvim_win_call(target, function() vim.cmd(scroll_cmd) end)
+    end
+  end
+end
+
+---@return function
+function M.smart_goto_end()
+  return function()
+    local target = get_target_win()
+    if not target then return end
+
+    if api.nvim_win_get_cursor(target)[1] >= vim.fn.line("w$", target) then
+      require("diffview").emit("select_next_entry", function()
+        vim.schedule(function()
+          api.nvim_win_call(target, function() vim.cmd([[exe "norm! gg"]]) end)
+        end)
+      end)
+    else
+      api.nvim_win_call(target, function() vim.cmd([[exe "norm! G"]]) end)
+    end
+  end
+end
+
+---@return function
+function M.smart_goto_start()
+  return function()
+    local target = get_target_win()
+    if not target then return end
+
+    if api.nvim_win_get_cursor(target)[1] <= vim.fn.line("w0", target) then
+      require("diffview").emit("select_prev_entry", function()
+        vim.schedule(function()
+          api.nvim_win_call(target, function() vim.cmd([[exe "norm! G"]]) end)
+        end)
+      end)
+    else
+      api.nvim_win_call(target, function() vim.cmd([[exe "norm! gg"]]) end)
+    end
+  end
+end
+
+---@return function
+function M.smart_next_change()
+  return function()
+    local target = get_target_win()
+    if not target then return end
+
+    local cur_pos = api.nvim_win_get_cursor(target)
+    api.nvim_win_call(target, function() vim.cmd([[silent! exe "norm! ]c"]]) end)
+    local new_pos = api.nvim_win_get_cursor(target)
+
+    if cur_pos[1] == new_pos[1] and cur_pos[2] == new_pos[2] then
+      require("diffview").emit("select_next_entry", function()
+        vim.schedule(function()
+          api.nvim_win_call(get_target_win(), function() vim.cmd([[silent! exe "norm! gg]c"]]) end)
+        end)
+      end)
+    end
+  end
+end
+
+---@return function
+function M.smart_prev_change()
+  return function()
+    local target = get_target_win()
+    if not target then return end
+
+    local cur_pos = api.nvim_win_get_cursor(target)
+    api.nvim_win_call(target, function() vim.cmd([[silent! exe "norm! [c"]]) end)
+    local new_pos = api.nvim_win_get_cursor(target)
+
+    if cur_pos[1] == new_pos[1] and cur_pos[2] == new_pos[2] then
+      require("diffview").emit("select_prev_entry", function()
+        vim.schedule(function()
+          api.nvim_win_call(get_target_win(), function() vim.cmd([[silent! exe "norm! G[c"]]) end)
+        end)
+      end)
+    end
+  end
+end
+
 ---@param kind "ours"|"theirs"|"base"|"local"
 local function diff_copy_target(kind)
   local view = lib.get_current_view() --[[@as DiffView|FileHistoryView ]]
@@ -633,12 +774,12 @@ local action_names = {
   "refresh_files",
   "restore_entry",
   "select_entry",
-  "select_next_entry",
-  "select_prev_entry",
   "select_first_entry",
   "select_last_entry",
   "select_next_commit",
+  "select_next_entry",
   "select_prev_commit",
+  "select_prev_entry",
   "stage_all",
   "toggle_files",
   "toggle_flatten_dirs",

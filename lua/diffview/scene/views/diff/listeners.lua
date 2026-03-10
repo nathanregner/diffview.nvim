@@ -77,11 +77,13 @@ return function(view)
         view:set_file(files[#files], false, true)
       end
     end,
-    select_next_entry = function()
+    select_next_entry = function(_, on_entry_change)
       view:next_file(true)
+      if on_entry_change then on_entry_change() end
     end,
-    select_prev_entry = function()
+    select_prev_entry = function(_, on_entry_change)
       view:prev_file(true)
+      if on_entry_change then on_entry_change() end
     end,
     next_entry = function()
       view.panel:highlight_next_file()
