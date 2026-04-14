@@ -4,7 +4,8 @@ local async = require("diffview.async")
 local lazy = require("diffview.lazy")
 
 local DiffView = lazy.access("diffview.scene.views.diff.diff_view", "DiffView") ---@type DiffView|LazyModule
-local FileHistoryView = lazy.access("diffview.scene.views.file_history.file_history_view", "FileHistoryView") ---@type FileHistoryView|LazyModule
+local FileHistoryView =
+  lazy.access("diffview.scene.views.file_history.file_history_view", "FileHistoryView") ---@type FileHistoryView|LazyModule
 local HelpPanel = lazy.access("diffview.ui.panels.help_panel", "HelpPanel") ---@type HelpPanel|LazyModule
 local StandardView = lazy.access("diffview.scene.views.standard.standard_view", "StandardView") ---@type StandardView|LazyModule
 local lib = lazy.require("diffview.lib") ---@module "diffview.lib"
@@ -27,11 +28,13 @@ local pl = lazy.access(utils, "path") ---@type PathLib
 
 local M = setmetatable({}, {
   __index = function(_, k)
-    utils.err((
-      "The action '%s' does not exist! "
-      .. "See ':h diffview-available-actions' for an overview of available actions."
-    ):format(k))
-  end
+    utils.err(
+      (
+        "The action '%s' does not exist! "
+        .. "See ':h diffview-available-actions' for an overview of available actions."
+      ):format(k)
+    )
+  end,
 })
 
 M.compat = {}
@@ -41,7 +44,9 @@ M.compat = {}
 local function prepare_goto_file()
   local view = lib.get_current_view()
 
-  if view and not (view:instanceof(DiffView.__get()) or view:instanceof(FileHistoryView.__get())) then
+  if
+    view and not (view:instanceof(DiffView.__get()) or view:instanceof(FileHistoryView.__get()))
+  then
     return
   end
 
@@ -53,10 +58,7 @@ local function prepare_goto_file()
     -- Ensure file exists
     if not pl:readable(file.absolute_path) then
       utils.err(
-        string.format(
-          "File does not exist on disk: '%s'",
-          pl:relative(file.absolute_path, ".")
-        )
+        string.format("File does not exist on disk: '%s'", pl:relative(file.absolute_path, "."))
       )
       return
     end
@@ -93,9 +95,7 @@ function M.goto_file()
       end
     end
 
-    if cursor then
-      utils.set_cursor(0, unpack(cursor))
-    end
+    if cursor then utils.set_cursor(0, unpack(cursor)) end
   end
 end
 
@@ -120,9 +120,7 @@ function M.goto_file_edit()
       end
     end
 
-    if cursor then
-      utils.set_cursor(0, unpack(cursor))
-    end
+    if cursor then utils.set_cursor(0, unpack(cursor)) end
   end
 end
 
@@ -139,9 +137,7 @@ function M.goto_file_split()
       api.nvim_buf_delete(temp_bufnr, { force = true })
     end
 
-    if cursor then
-      utils.set_cursor(0, unpack(cursor))
-    end
+    if cursor then utils.set_cursor(0, unpack(cursor)) end
   end
 end
 
@@ -158,9 +154,7 @@ function M.goto_file_tab()
       api.nvim_buf_delete(temp_bufnr, { force = true })
     end
 
-    if cursor then
-      utils.set_cursor(0, unpack(cursor))
-    end
+    if cursor then utils.set_cursor(0, unpack(cursor)) end
   end
 end
 
@@ -183,10 +177,8 @@ function M.jumpto_conflict(num, use_delta)
 
     if main:is_valid() and curfile:is_valid() then
       local next_idx
-      local conflicts, cur, cur_idx = vcs_utils.parse_conflicts(
-        api.nvim_buf_get_lines(curfile.bufnr, 0, -1, false),
-        main.id
-      )
+      local conflicts, cur, cur_idx =
+        vcs_utils.parse_conflicts(api.nvim_buf_get_lines(curfile.bufnr, 0, -1, false), main.id)
 
       if #conflicts > 0 then
         if not use_delta then
@@ -194,9 +186,7 @@ function M.jumpto_conflict(num, use_delta)
         else
           local delta = num
 
-          if not cur and delta < 0 and cur_idx <= #conflicts then
-            delta = delta + 1
-          end
+          if not cur and delta < 0 and cur_idx <= #conflicts then delta = delta + 1 end
 
           if (delta < 0 and cur_idx < 1) or (delta > 0 and cur_idx > #conflicts) then
             cur_idx = utils.clamp(cur_idx, 1, #conflicts)
@@ -213,7 +203,7 @@ function M.jumpto_conflict(num, use_delta)
           if curwin ~= main.id then view.cur_layout:sync_scroll() end
         end)
 
-        api.nvim_echo({{ ("Conflict [%d/%d]"):format(next_idx, #conflicts) }}, false, {})
+        api.nvim_echo({ { ("Conflict [%d/%d]"):format(next_idx, #conflicts) } }, false, {})
 
         return {
           total = #conflicts,
@@ -228,15 +218,11 @@ end
 
 ---Jump to the next merge conflict marker.
 ---@return diffview.ConflictCount?
-function M.next_conflict()
-  return M.jumpto_conflict(1, true)
-end
+function M.next_conflict() return M.jumpto_conflict(1, true) end
 
 ---Jump to the previous merge conflict marker.
 ---@return diffview.ConflictCount?
-function M.prev_conflict()
-  return M.jumpto_conflict(-1, true)
-end
+function M.prev_conflict() return M.jumpto_conflict(-1, true) end
 
 ---Execute `cmd` for each target window in the current view. If no targets
 ---are given, all windows are targeted.
@@ -260,11 +246,7 @@ function M.view_windo(cmd)
       for _, symbol in ipairs({ "a", "b", "c", "d" }) do
         local win = view.cur_layout[symbol] --[[@as Window? ]]
 
-        if win then
-          api.nvim_win_call(win.id, function()
-            fun(view.cur_layout.name, symbol)
-          end)
-        end
+        if win then api.nvim_win_call(win.id, function() fun(view.cur_layout.name, symbol) end) end
       end
     end
   end
@@ -279,8 +261,10 @@ function M.scroll_view(distance)
   if distance % 1 == 0 then
     scroll_cmd = ([[exe "norm! %d%s"]]):format(distance, scroll_opr)
   else
-    scroll_cmd = ([[exe "norm! " . float2nr(winheight(0) * %f) . "%s"]])
-        :format(math.abs(distance), scroll_opr)
+    scroll_cmd = ([[exe "norm! " . float2nr(winheight(0) * %f) . "%s"]]):format(
+      math.abs(distance),
+      scroll_opr
+    )
   end
 
   return function()
@@ -299,11 +283,7 @@ function M.scroll_view(distance)
         end
       end
 
-      if target then
-        api.nvim_win_call(target, function()
-          vim.cmd(scroll_cmd)
-        end)
-      end
+      if target then api.nvim_win_call(target, function() vim.cmd(scroll_cmd) end) end
     end
   end
 end
@@ -329,124 +309,62 @@ local function get_target_win()
   return target
 end
 
----@param distance number Fraction of window height to scroll (e.g., 0.5 for half)
+---@param key string Key to feed (e.g., "<C-d>", "<C-u>", "]c")
+---@param direction 1|-1 Direction: 1 for down (next entry), -1 for up (prev entry)
+---@param jump_suffix? string Optional suffix to append after jump (e.g., "]c" for change navigation)
 ---@return function
-function M.smart_scroll_down(distance)
-  local scroll_cmd = ([[exe "norm! " . float2nr(winheight(0) * %f) . "\<c-e>"]])
-      :format(math.abs(distance))
+local function smart_scroll(key, direction, jump_suffix)
+  local event = direction > 0 and "select_next_entry" or "select_prev_entry"
+  local jump_cmd = (direction > 0 and "gg" or "G") .. (jump_suffix or "")
 
   return function()
     local target = get_target_win()
     if not target then return end
 
-    if api.nvim_win_get_cursor(target)[1] >= vim.fn.line("w$", target) then
-      require("diffview").emit("select_next_entry", function()
-        vim.schedule(function()
-          api.nvim_win_call(target, function() vim.cmd([[exe "norm! gg"]]) end)
+    local cursor_before = api.nvim_win_get_cursor(target)
+    api.nvim_win_call(
+      target,
+      function() api.nvim_feedkeys(api.nvim_replace_termcodes(key, true, false, true), "n", false) end
+    )
+
+    vim.schedule(function()
+      if not api.nvim_win_is_valid(target) then return end
+      local cursor_after = api.nvim_win_get_cursor(target)
+      if cursor_before[1] == cursor_after[1] and cursor_before[2] == cursor_after[2] then
+        require("diffview").emit(event, function()
+          vim.schedule(function()
+            if api.nvim_win_is_valid(target) then
+              api.nvim_win_call(target, function() vim.cmd("silent! exe 'norm! " .. jump_cmd .. "'") end)
+            end
+          end)
         end)
-      end)
-    else
-      api.nvim_win_call(target, function() vim.cmd(scroll_cmd) end)
-    end
+      end
+    end)
   end
 end
 
----@param distance number Fraction of window height to scroll (e.g., 0.5 for half)
----@return function
-function M.smart_scroll_up(distance)
-  local scroll_cmd = ([[exe "norm! " . float2nr(winheight(0) * %f) . "\<c-y>"]])
-      :format(math.abs(distance))
+function M.smart_scroll_down() return smart_scroll("<C-d>", 1) end
 
-  return function()
-    local target = get_target_win()
-    if not target then return end
-
-    if api.nvim_win_get_cursor(target)[1] <= vim.fn.line("w0", target) then
-      require("diffview").emit("select_prev_entry", function()
-        vim.schedule(function()
-          api.nvim_win_call(target, function() vim.cmd([[exe "norm! G"]]) end)
-        end)
-      end)
-    else
-      api.nvim_win_call(target, function() vim.cmd(scroll_cmd) end)
-    end
-  end
-end
+function M.smart_scroll_up() return smart_scroll("<C-u>", -1) end
 
 ---@return function
 function M.smart_goto_end()
-  return function()
-    local target = get_target_win()
-    if not target then return end
-
-    if api.nvim_win_get_cursor(target)[1] >= vim.fn.line("w$", target) then
-      require("diffview").emit("select_next_entry", function()
-        vim.schedule(function()
-          api.nvim_win_call(target, function() vim.cmd([[exe "norm! gg"]]) end)
-        end)
-      end)
-    else
-      api.nvim_win_call(target, function() vim.cmd([[exe "norm! G"]]) end)
-    end
-  end
+  return smart_scroll("G", 1)
 end
 
 ---@return function
 function M.smart_goto_start()
-  return function()
-    local target = get_target_win()
-    if not target then return end
-
-    if api.nvim_win_get_cursor(target)[1] <= vim.fn.line("w0", target) then
-      require("diffview").emit("select_prev_entry", function()
-        vim.schedule(function()
-          api.nvim_win_call(target, function() vim.cmd([[exe "norm! G"]]) end)
-        end)
-      end)
-    else
-      api.nvim_win_call(target, function() vim.cmd([[exe "norm! gg"]]) end)
-    end
-  end
+  return smart_scroll("gg", -1)
 end
 
 ---@return function
 function M.smart_next_change()
-  return function()
-    local target = get_target_win()
-    if not target then return end
-
-    local cur_pos = api.nvim_win_get_cursor(target)
-    api.nvim_win_call(target, function() vim.cmd([[silent! exe "norm! ]c"]]) end)
-    local new_pos = api.nvim_win_get_cursor(target)
-
-    if cur_pos[1] == new_pos[1] and cur_pos[2] == new_pos[2] then
-      require("diffview").emit("select_next_entry", function()
-        vim.schedule(function()
-          api.nvim_win_call(get_target_win(), function() vim.cmd([[silent! exe "norm! gg]c"]]) end)
-        end)
-      end)
-    end
-  end
+  return smart_scroll("]c", 1, "]c")
 end
 
 ---@return function
 function M.smart_prev_change()
-  return function()
-    local target = get_target_win()
-    if not target then return end
-
-    local cur_pos = api.nvim_win_get_cursor(target)
-    api.nvim_win_call(target, function() vim.cmd([[silent! exe "norm! [c"]]) end)
-    local new_pos = api.nvim_win_get_cursor(target)
-
-    if cur_pos[1] == new_pos[1] and cur_pos[2] == new_pos[2] then
-      require("diffview").emit("select_prev_entry", function()
-        vim.schedule(function()
-          api.nvim_win_call(get_target_win(), function() vim.cmd([[silent! exe "norm! G[c"]]) end)
-        end)
-      end)
-    end
-  end
+  return smart_scroll("[c", -1, "[c")
 end
 
 ---@param kind "ours"|"theirs"|"base"|"local"
@@ -504,9 +422,12 @@ local function resolve_all_conflicts(view, target)
         first = cur_conflict.first + offset
         last = cur_conflict.last + offset
 
-        if target == "ours" then content = cur_conflict.ours.content
-        elseif target == "theirs" then content = cur_conflict.theirs.content
-        elseif target == "base" then content = cur_conflict.base.content
+        if target == "ours" then
+          content = cur_conflict.ours.content
+        elseif target == "theirs" then
+          content = cur_conflict.theirs.content
+        elseif target == "base" then
+          content = cur_conflict.base.content
         elseif target == "all" then
           content = utils.vec_join(
             cur_conflict.ours.content,
@@ -520,10 +441,13 @@ local function resolve_all_conflicts(view, target)
         offset = offset + (#content - (last - first) - 1)
       end
 
-      utils.set_cursor(main.id, unpack({
-        (content and #content or 0) + first - 1,
-        content and content[1] and #content[#content] or 0
-      }))
+      utils.set_cursor(
+        main.id,
+        unpack({
+          (content and #content or 0) + first - 1,
+          content and content[1] and #content[#content] or 0,
+        })
+      )
 
       view.cur_layout:sync_scroll()
     end
@@ -535,7 +459,7 @@ function M.conflict_choose_all(target)
   return async.void(function()
     local view = lib.get_current_view() --[[@as DiffView ]]
 
-    if (view and view:instanceof(DiffView.__get())) then
+    if view and view:instanceof(DiffView.__get()) then
       ---@cast view DiffView
 
       if view.panel:is_focused() then
@@ -564,31 +488,31 @@ function M.conflict_choose(target)
       local curfile = main.file
 
       if main:is_valid() and curfile:is_valid() then
-        local _, cur = vcs_utils.parse_conflicts(
-          api.nvim_buf_get_lines(curfile.bufnr, 0, -1, false),
-          main.id
-        )
+        local _, cur =
+          vcs_utils.parse_conflicts(api.nvim_buf_get_lines(curfile.bufnr, 0, -1, false), main.id)
 
         if cur then
           local content
 
-          if target == "ours" then content = cur.ours.content
-          elseif target == "theirs" then content = cur.theirs.content
-          elseif target == "base" then content = cur.base.content
+          if target == "ours" then
+            content = cur.ours.content
+          elseif target == "theirs" then
+            content = cur.theirs.content
+          elseif target == "base" then
+            content = cur.base.content
           elseif target == "all" then
-            content = utils.vec_join(
-              cur.ours.content,
-              cur.base.content,
-              cur.theirs.content
-            )
+            content = utils.vec_join(cur.ours.content, cur.base.content, cur.theirs.content)
           end
 
           api.nvim_buf_set_lines(curfile.bufnr, cur.first - 1, cur.last, false, content or {})
 
-          utils.set_cursor(main.id, unpack({
-            (content and #content or 0) + cur.first - 1,
-            content and content[1] and #content[#content] or 0
-          }))
+          utils.set_cursor(
+            main.id,
+            unpack({
+              (content and #content or 0) + cur.first - 1,
+              content and content[1] and #content[#content] or 0,
+            })
+          )
         end
       end
     end
@@ -606,15 +530,13 @@ function M.diffget(target)
       if api.nvim_get_mode().mode:match("^[vV]") then
         range = ("%d,%d"):format(unpack(utils.vec_sort({
           vim.fn.line("."),
-          vim.fn.line("v")
+          vim.fn.line("v"),
         })))
       end
 
       vim.cmd(("%sdiffget %d"):format(range or "", bufnr))
 
-      if range then
-        api.nvim_feedkeys(utils.t("<esc>"), "n", false)
-      end
+      if range then api.nvim_feedkeys(utils.t("<esc>"), "n", false) end
     end
   end
 end
@@ -624,9 +546,7 @@ function M.diffput(target)
   return function()
     local bufnr = diff_copy_target(target)
 
-    if bufnr and api.nvim_buf_is_valid(bufnr) then
-      vim.cmd("diffput " .. bufnr)
-    end
+    if bufnr and api.nvim_buf_is_valid(bufnr) then vim.cmd("diffput " .. bufnr) end
   end
 end
 
@@ -642,7 +562,7 @@ function M.cycle_layout()
       Diff3Mixed.__get(),
       Diff4Mixed.__get(),
       Diff1.__get(),
-    }
+    },
   }
 
   local view = lib.get_current_view()
@@ -661,12 +581,10 @@ function M.cycle_layout()
     cur_file = view.cur_entry
 
     if cur_file then
-      layouts = cur_file.kind == "conflicting"
-          and layout_cycles.merge_tool
-          or layout_cycles.standard
-      files = cur_file.kind == "conflicting"
-          and view.files.conflicting
-          or utils.vec_join(view.panel.files.working, view.panel.files.staged)
+      layouts = cur_file.kind == "conflicting" and layout_cycles.merge_tool
+        or layout_cycles.standard
+      files = cur_file.kind == "conflicting" and view.files.conflicting
+        or utils.vec_join(view.panel.files.working, view.panel.files.staged)
     end
   else
     return
@@ -719,9 +637,7 @@ do
     return function()
       if vim.wo.foldmethod ~= "manual" then
         local ok, msg = pcall(vim.cmd, "norm! " .. fold_cmd)
-        if not ok and msg then
-          api.nvim_err_writeln(msg)
-        end
+        if not ok and msg then api.nvim_err_writeln(msg) end
         return
       end
 
@@ -744,8 +660,24 @@ do
   end
 
   for _, fold_cmd in ipairs({
-    "za", "zA", "ze", "zE", "zo", "zc", "zO", "zC", "zr", "zm", "zR", "zM",
-    "zv", "zx", "zX", "zn", "zN", "zi",
+    "za",
+    "zA",
+    "ze",
+    "zE",
+    "zo",
+    "zc",
+    "zO",
+    "zC",
+    "zr",
+    "zm",
+    "zR",
+    "zM",
+    "zv",
+    "zx",
+    "zX",
+    "zn",
+    "zN",
+    "zi",
   }) do
     table.insert(M.compat.fold_cmds, {
       "n",
@@ -789,9 +721,7 @@ local action_names = {
 }
 
 for _, name in ipairs(action_names) do
-  M[name] = function()
-    require("diffview").emit(name)
-  end
+  M[name] = function() require("diffview").emit(name) end
 end
 
 return M
