@@ -264,6 +264,12 @@ return function(view)
       view.panel:render()
       view.panel:redraw()
     end,
+    toggle_hide_pure_renames = function()
+      view.panel.hide_pure_renames = not view.panel.hide_pure_renames
+      view.panel:update_components()
+      view.panel:render()
+      view.panel:redraw()
+    end,
     focus_files = function()
       view.panel:focus()
     end,

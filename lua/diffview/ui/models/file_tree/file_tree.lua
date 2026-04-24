@@ -106,6 +106,9 @@ function FileTree:create_comp_schema(data)
   ---@param node Node
   local function recurse(parent, node)
     if not node:has_children() then
+      if data.filter and not data.filter(node.data) then
+        return
+      end
       parent[#parent + 1] = { name = "file", context = node.data }
       return
     end

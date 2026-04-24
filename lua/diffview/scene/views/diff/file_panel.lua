@@ -18,6 +18,7 @@ local M = {}
 ---@field cur_file FileEntry
 ---@field listing_style "list"|"tree"
 ---@field tree_options TreeOptions
+---@field hide_pure_renames boolean
 ---@field render_data RenderData
 ---@field components CompStruct
 ---@field constrain_cursor function
@@ -85,10 +86,25 @@ function FilePanel:setup_buffer()
   if help_keymap then self.help_mapping = help_keymap[2] end
 end
 
+---@param file FileEntry
+---@return boolean
+local function is_pure_rename(file)
+  if not file.status:match("^R") then return false end
+  if not file.stats then return false end
+  return file.stats.additions == 0 and file.stats.deletions == 0
+end
+
 function FilePanel:update_components()
   local conflicting_files
   local working_files
   local staged_files
+
+  local function should_show(file)
+    if self.hide_pure_renames and is_pure_rename(file) then
+      return false
+    end
+    return true
+  end
 
   if self.listing_style == "list" then
     conflicting_files = { name = "files" }
@@ -96,24 +112,30 @@ function FilePanel:update_components()
     staged_files = { name = "files" }
 
     for _, file in ipairs(self.files.conflicting) do
-      table.insert(conflicting_files, {
-        name = "file",
-        context = file,
-      })
+      if should_show(file) then
+        table.insert(conflicting_files, {
+          name = "file",
+          context = file,
+        })
+      end
     end
 
     for _, file in ipairs(self.files.working) do
-      table.insert(working_files, {
-        name = "file",
-        context = file,
-      })
+      if should_show(file) then
+        table.insert(working_files, {
+          name = "file",
+          context = file,
+        })
+      end
     end
 
     for _, file in ipairs(self.files.staged) do
-      table.insert(staged_files, {
-        name = "file",
-        context = file,
-      })
+      if should_show(file) then
+        table.insert(staged_files, {
+          name = "file",
+          context = file,
+        })
+      end
     end
 
   elseif self.listing_style == "tree" then
@@ -125,6 +147,7 @@ function FilePanel:update_components()
       { name = "files" },
       self.files.conflicting_tree:create_comp_schema({
         flatten_dirs = self.tree_options.flatten_dirs,
+        filter = should_show,
       })
     )
 
@@ -132,6 +155,7 @@ function FilePanel:update_components()
       { name = "files" },
       self.files.working_tree:create_comp_schema({
         flatten_dirs = self.tree_options.flatten_dirs,
+        filter = should_show,
       })
     )
 
@@ -139,6 +163,7 @@ function FilePanel:update_components()
       { name = "files" },
       self.files.staged_tree:create_comp_schema({
         flatten_dirs = self.tree_options.flatten_dirs,
+        filter = should_show,
       })
     )
   end

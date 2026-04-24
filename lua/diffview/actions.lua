@@ -716,6 +716,7 @@ local action_names = {
   "toggle_files",
   "toggle_flatten_dirs",
   "toggle_fold",
+  "toggle_hide_pure_renames",
   "toggle_stage_entry",
   "unstage_all",
 }

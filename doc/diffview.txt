@@ -1211,6 +1211,12 @@ toggle_flatten_dirs                             *diffview-actions-toggle_flatten
         Toggle whether or not to flatten empty subdirectories in the file tree
         listing style.
 
+toggle_hide_pure_renames                        *diffview-actions-toggle_hide_pure_renames*
+        Contexts: `file_panel`
+
+        Toggle hiding of pure file renames (files that were only renamed with
+        no content changes) from the file panel.
+
 toggle_fold                                     *diffview-actions-toggle_fold*
         Contexts: `file_panel`, `file_history_panel`
 
